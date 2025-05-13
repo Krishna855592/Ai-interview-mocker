@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import Image from 'next/image'
 import React, { useState, useEffect } from 'react'
 import Webcam from 'react-webcam'
@@ -30,17 +30,18 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex, inter
     useLegacyResults: false,
   })
 
-  // Append each result to the answer
+  // Append new results to userAnswer only while recording
   useEffect(() => {
-    results.map((result) => {
-      setUserAnswer(prevAns => prevAns + result?.transcript)
-    })
+    if (results.length > 0 && isRecording) {
+      const newTranscript = results.map(r => r.transcript).join(' ')
+      setUserAnswer(prevAns => prevAns + ' ' + newTranscript)
+    }
   }, [results])
 
-  // Run after recording ends and userAnswer is available
+  // Trigger when recording stops
   useEffect(() => {
     if (!isRecording) {
-      if (userAnswer.length >= 10) {
+      if (userAnswer.trim().length >= 10) {
         UpdateUserAnswer()
       } else {
         setLoading(false)
@@ -49,15 +50,18 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex, inter
     }
   }, [isRecording])
 
+  // Handle recording toggle
   const StartStopRecording = async () => {
     if (isRecording) {
       stopSpeechToText()
     } else {
       setUserAnswer('')
+      setResults([]) // 🧼 Clear old results
       startSpeechToText()
     }
   }
 
+  // Save answer & fetch feedback
   const UpdateUserAnswer = async () => {
     setLoading(true)
     console.log('User Answer:', userAnswer)
@@ -93,9 +97,8 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex, inter
 
       if (resp) {
         toast.success('User Answer Recorded Successfully')
-        setResults([]);
+        setResults([])
       }
-      setResults([]);
 
     } catch (error) {
       console.error('Error:', error)
@@ -103,13 +106,14 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex, inter
     }
 
     setUserAnswer('')
+    setResults([])
     setLoading(false)
   }
 
   return (
     <div className='flex items-center justify-center flex-col'>
       <div className='flex flex-col mt-20 justify-center items-center bg-black rounded-lg p-5'>
-        <Image src={'/webcam.png'} width={200} height={200} className='absolute' />
+        <Image src={'/webcam.png'} width={200} height={200} className='absolute' alt='Webcam Overlay' />
         <Webcam
           mirrored={true}
           style={{
@@ -129,8 +133,6 @@ function RecordAnswerSection({ mockInterviewQuestion, activeQuestionIndex, inter
         <Mic className={isRecording ? 'text-red-500 animate-pulse' : 'text-black'} />
         {isRecording ? 'Stop Recording' : 'Record Answer'}
       </Button>
-
-      
     </div>
   )
 }
